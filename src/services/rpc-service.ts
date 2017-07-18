@@ -14,6 +14,7 @@ import { logger } from '../utils/logger';
 import reviver from '../utils/reviver';
 import { RpcRequest } from '../utils/rpc-request';
 import { IRpcResponse, RpcResponse } from '../utils/rpc-response';
+import { exporter } from '../utils/status-exporter';
 import { TraceLog } from '../utils/tracelog';
 import { AmqpChannelPoolService } from './amqp-channel-pool-service';
 
@@ -202,6 +203,7 @@ export default class RPCService {
           throw err;
         } finally {
           log.shoot();
+          exporter.pushTransactionData(type, rpcName);
           if (--this.onGoingRpcRequestCount < 1 && this.purging) {
             this.purging();
           }
@@ -232,9 +234,12 @@ export default class RPCService {
 
   public async invoke<T, U>(name: string, msg: T, opts?: {withRawdata: boolean}): Promise<U>;
   public async invoke(name: string, msg: any, opts?: {withRawdata: boolean}): Promise<any> {
+    let startAt;
     const option = this.makeInvokeOption();
     const p = this.waitResponse(option.correlationId!, (msg: Message) => {
+      const responseTime = +new Date() - startAt;
       const res = RpcResponse.decode(msg.content);
+      exporter.pushTimeData('rpc', name, responseTime);
       if (res.result === false) throw res.body;
       if (opts && opts.withRawdata) return { body: res.body, raw: msg.content };
       return res.body;
@@ -249,6 +254,7 @@ export default class RPCService {
     const content = new Buffer(JSON.stringify(msg), 'utf8');
     try {
       await this.channelPool.usingChannel(async chan => chan.sendToQueue(name, content, option));
+      startAt = +new Date();
     } catch (e) {
       this.waitingResponse[option.correlationId!].reject(e);
       delete this.waitingResponse[option.correlationId!];

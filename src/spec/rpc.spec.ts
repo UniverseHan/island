@@ -6,6 +6,7 @@ process.env.ISLAND_SERVICE_LOAD_TIME_MS = 1000;
 
 import * as Bluebird from 'bluebird';
 
+import { StatusExporter } from 'island-status-exporter';
 import { RpcOptions } from '../controllers/rpc-decorator';
 import paramSchemaInspector from '../middleware/schema.middleware';
 import { AmqpChannelPoolService } from '../services/amqp-channel-pool-service';
@@ -589,5 +590,10 @@ describe('RPC-hook', () => {
       expect(e.extra.message).toEqual('pre-hooked');
       expect(haveBeenCalled).toBeTruthy();
     }
+  }));
+
+  it('could reference the error object', spec(async () => {
+    StatusExporter.initialize(true, 'rpc.status.json');
+    await StatusExporter.saveStatusJsonFile();
   }));
 });

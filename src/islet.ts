@@ -5,6 +5,7 @@ import ListenableAdapter, { IListenableAdapter } from './adapters/listenable-ada
 import { bindImpliedServices } from './utils/di-bind';
 import { FatalError, ISLAND } from './utils/error';
 import { logger } from './utils/logger';
+import { exporter, STATUS_EXPORT, STATUS_EXPORT_TIME_MS } from './utils/status-exporter';
 
 import { IntervalHelper } from './utils/interval-helper';
 
@@ -112,6 +113,11 @@ export default class Islet {
 
       await Promise.all(adapters.map(adapter => adapter.postInitialize()));
       await Promise.all(adapters.map(adapter => adapter.listen()));
+
+      if (STATUS_EXPORT) {
+        logger.notice('============ SAVE START ============');
+        IntervalHelper.setIslandInterval(exporter.saveStatusJsonFile, STATUS_EXPORT_TIME_MS);
+      }
 
       logger.info('started');
       await this.onStarted();

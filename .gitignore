@@ -3,6 +3,7 @@ dist
 package
 island-*.tgz
 .nvmrc
+*status.json
 
 # Logs
 logs

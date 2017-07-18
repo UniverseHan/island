@@ -1,3 +1,5 @@
+import { StatusExporter } from 'island-status-exporter';
+
 import { AmqpChannelPoolService } from '../services/amqp-channel-pool-service';
 import { EventHookType, EventService } from '../services/event-service';
 import { Event, PatternSubscriber } from '../services/event-subscriber';
@@ -155,5 +157,10 @@ describe('Event-hook', () => {
       throw new Error('custom-event-error');
     });
     await eventService.publishEvent(new TestEvent('bbb'));
+  }));
+
+  it('could reference the error object', spec(async () => {
+    StatusExporter.initialize(true, 'event.status.json');
+    await StatusExporter.saveStatusJsonFile();
   }));
 });
